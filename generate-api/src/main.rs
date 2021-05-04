@@ -3,6 +3,7 @@ pub mod parser;
 
 use anyhow::{bail, Result};
 use cargo_metadata::MetadataCommand;
+use parser::Value::Integer;
 use sha2::{Digest, Sha256};
 use std::collections::HashMap;
 use std::env;
@@ -34,6 +35,21 @@ fn main() -> Result<()> {
             eprintln!("{}", path.display());
             let objects = parser::parse(&input)?;
             locales.insert(lang.to_string(), objects);
+        }
+    }
+
+    for (_, objects) in locales.iter_mut() {
+        for object in objects.iter_mut() {
+            if object.name == "LC_TIME" {
+                let (key, _) = &object.values[0];
+                if key != "copy" {
+                    if !object.values.iter().any(|(k, _)| k == "first_weekday") {
+                        object
+                            .values
+                            .push(("first_weekday".to_string(), vec![Integer(1)]));
+                    }
+                }
+            }
         }
     }
 
